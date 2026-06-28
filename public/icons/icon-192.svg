@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="32" fill="#E0600A"/>
+  <rect x="8" y="8" width="176" height="176" rx="26" fill="#E0600A"/>
+  <rect x="16" y="16" width="160" height="160" rx="22" fill="#F7F2E8" opacity="0.12"/>
+  <text x="96" y="115" text-anchor="middle" font-family="Georgia, serif" font-size="72" font-weight="bold" fill="#F7F2E8">नस</text>
+  <rect x="30" y="140" width="132" height="2" rx="1" fill="#F7F2E8" opacity="0.5"/>
+  <text x="96" y="162" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F7F2E8" opacity="0.85" letter-spacing="2">NAGRIK SETU</text>
+</svg>

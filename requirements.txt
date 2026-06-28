@@ -1,0 +1,157 @@
+==============================================================
+  NAGRIK SETU — Requirements & Setup Guide
+  Civic AI Agent for India | Hackathon Build (June 2026)
+==============================================================
+
+RUNTIME
+-------
+Node.js  >= 18.0.0   https://nodejs.org
+npm      >= 9.0.0    (bundled with Node.js)
+
+
+NODE PACKAGES  (auto-installed via: npm install)
+-------------------------------------------------
+next                    14.2.5   — React framework (App Router)
+react                   18.x     — UI library
+react-dom               18.x     — DOM renderer
+@google/generative-ai   0.21.x   — Gemini AI SDK
+@googlemaps/js-api-loader        — Google Maps loader
+@googlemaps/markerclusterer      — Map clustering
+lucide-react            0.400.x  — Icon set
+recharts                3.x      — Analytics charts
+react-markdown          9.x      — Markdown rendering
+remark-gfm                       — GFM markdown plugin
+tailwindcss             3.x      — Utility CSS
+tailwind-merge                   — Class merge utility
+clsx                             — Conditional classes
+date-fns                3.x      — Date utilities
+firebase                10.x     — (optional) Firestore sync
+firebase-admin          12.x     — (optional) Server-side Firebase
+googleapis              140.x    — (optional) Google APIs
+html2canvas             1.x      — (optional) Screenshot
+jspdf                   2.x      — (optional) PDF export
+
+
+==============================================================
+  REQUIRED API KEYS  (add to .env.local — never commit!)
+==============================================================
+
+1. GEMINI AI  [REQUIRED — core AI features]
+   ├─ Key name : GEMINI_API_KEY
+   ├─ Get from : https://aistudio.google.com/app/apikey
+   ├─ Free tier: 15 RPM, 1M tokens/day (more than enough)
+   └─ Used for : Chat agent, RTI drafting, fake-closure detection,
+                 complaint analysis, Telegram bot replies
+
+2. GOOGLE MAPS  [REQUIRED — live map & street view]
+   ├─ Key name : NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+   ├─ Get from : https://console.cloud.google.com → APIs & Services → Credentials
+   ├─ Enable   : Maps JavaScript API
+                 Street View Static API
+   ├─ Free tier: $200/month credit (~28,000 map loads free)
+   └─ Used for : CivicMap, Street View panel, state boundary overlay
+
+
+==============================================================
+  OPTIONAL API KEYS
+==============================================================
+
+3. TELEGRAM BOT  [OPTIONAL — no Meta approval needed]
+   ├─ Key name : TELEGRAM_BOT_TOKEN
+   │             NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
+   ├─ Get from : Message @BotFather on Telegram → /newbot
+   ├─ Webhook  : After deploy, run once:
+   │   curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://YOUR_DOMAIN/api/telegram"
+   └─ Features : File complaints by text or photo, resolve by proof photo,
+                 conversation history, menu, 10 Indian languages
+
+4. WHATSAPP CLOUD API  [OPTIONAL — requires Meta approval ~2–5 days]
+   ├─ Key names: WHATSAPP_ACCESS_TOKEN
+   │             WHATSAPP_PHONE_NUMBER_ID
+   │             WHATSAPP_VERIFY_TOKEN  (any string you choose)
+   ├─ Get from : https://developers.facebook.com → WhatsApp → Getting Started
+   └─ Used for : WhatsApp bot (same features as Telegram)
+
+5. FIREBASE  [OPTIONAL — localStorage is fallback if not set]
+   ├─ Key names: NEXT_PUBLIC_FIREBASE_API_KEY
+   │             NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+   │             NEXT_PUBLIC_FIREBASE_PROJECT_ID
+   │             NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+   │             NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+   │             NEXT_PUBLIC_FIREBASE_APP_ID
+   ├─ Get from : https://console.firebase.google.com → Project Settings → Apps
+   └─ Used for : Cross-device complaint sync (falls back to localStorage)
+
+6. GOOGLE OAUTH  [OPTIONAL — Gmail/Sheets integration]
+   ├─ Key names: GOOGLE_CLIENT_ID
+   │             GOOGLE_CLIENT_SECRET
+   │             GOOGLE_REDIRECT_URI
+   ├─ Get from : Google Cloud Console → APIs & Services → OAuth 2.0 Credentials
+   └─ Used for : Send complaint emails, export to Google Sheets
+
+7. BHASHINI  [OPTIONAL — Indian language TTS/ASR]
+   ├─ Key names: BHASHINI_USER_ID
+   │             BHASHINI_API_KEY
+   ├─ Get from : https://bhashini.gov.in/ulca/user/register
+   └─ Used for : Voice input/output in regional Indian languages
+
+
+==============================================================
+  API ROUTES (app/api/)
+==============================================================
+
+POST /api/chat          — Gemini AI chat (text + image multimodal)
+POST /api/telegram      — Telegram bot webhook
+GET  /api/telegram      — Webhook health check
+POST /api/whatsapp      — WhatsApp bot webhook
+GET  /api/whatsapp      — WhatsApp webhook verification
+
+
+==============================================================
+  LOCAL SETUP
+==============================================================
+
+1. Clone / unzip the project
+2. Install dependencies:
+      npm install
+3. Create .env.local in project root and add API keys (see above)
+4. Run development server:
+      npm run dev
+5. Open http://localhost:3000
+
+
+==============================================================
+  PRODUCTION DEPLOYMENT (Google Cloud Run)
+==============================================================
+
+# One-command deploy:
+gcloud run deploy nagrik-setu \
+  --source . \
+  --region asia-south1 \
+  --allow-unauthenticated \
+  --set-env-vars GEMINI_API_KEY=your_key,TELEGRAM_BOT_TOKEN=your_token,NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key
+
+# After deploy, set Telegram webhook:
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://YOUR-CLOUD-RUN-URL/api/telegram"
+
+# Or build Docker image manually:
+docker build \
+  --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key \
+  -t nagrik-setu .
+docker run -p 8080:8080 \
+  -e GEMINI_API_KEY=your_key \
+  -e TELEGRAM_BOT_TOKEN=your_token \
+  nagrik-setu
+
+
+==============================================================
+  SECURITY NOTES
+==============================================================
+
+- NEVER commit .env.local to git
+- NEXT_PUBLIC_* keys are exposed to the browser — only Maps key should be public
+- GEMINI_API_KEY and TELEGRAM_BOT_TOKEN must stay server-side only
+- Restrict your Google Maps API key to your domain in GCP Console
+- Rotate Telegram bot token after the hackathon demo
+
+==============================================================
