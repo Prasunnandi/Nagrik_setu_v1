@@ -377,7 +377,7 @@ export default function HomePage() {
           {/* Telegram CTA */}
           <a
             data-demo="telegram-cta"
-            href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'NagrikSetuBot'}`}
+            href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'nagriksetu_bot'}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 flex-shrink-0 transition-all hover:brightness-110 active:scale-[0.99]"
