@@ -17,7 +17,7 @@ import { loadComplaints, upsertComplaint } from '@/lib/persistence';
 import { subscribeComplaints, saveComplaint, updateComplaintStatus } from '@/lib/firebase';
 import { Map as MapIcon, MessageSquare, BarChart3, Users, Search, X, PieChart, Clock, RotateCcw, Play, Trophy } from 'lucide-react';
 import DemoTour from '@/components/DemoTour';
-import OfficerLeaderboard, { OfficerStats } from '@/components/OfficerLeaderboard';
+import OfficerLeaderboard, { OfficerStats, buildOfficerStats } from '@/components/OfficerLeaderboard';
 
 // ── Simulated Clock Bar ─────────────────────────────────────────────────────
 function SimClockBar({ offsetMs, onAdvance, onReset, onStartTour }: {
@@ -246,6 +246,53 @@ export default function HomePage() {
   const wardPickerRef = useRef<HTMLDivElement>(null);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [selectedOfficer, setSelectedOfficer] = useState<OfficerStats | null>(null);
+
+  const officersList = useMemo(() => {
+    const unique = new Map<string, { name: string; designation: string; phone: string; email: string }>();
+    complaints.forEach(c => {
+      if (c.assignedOfficer) {
+        unique.set(c.assignedOfficer.name, c.assignedOfficer);
+      }
+    });
+    return Array.from(unique.values());
+  }, [complaints]);
+
+  const handleReassignOfficer = useCallback((complaintId: string, officerName: string) => {
+    const targetOfficer = officersList.find(o => o.name === officerName);
+    if (!targetOfficer) return;
+
+    setComplaints(prev => {
+      const idx = prev.findIndex(c => c.id === complaintId);
+      if (idx === -1) return prev;
+      const updated = {
+        ...prev[idx],
+        assignedOfficer: targetOfficer,
+        lastUpdatedAt: new Date().toISOString(),
+      };
+      
+      updateComplaintStatus(complaintId, updated);
+      
+      if (selectedComplaint && selectedComplaint.id === complaintId) {
+        setSelectedComplaint(updated);
+      }
+      
+      const next = [...prev];
+      next[idx] = updated;
+      return next;
+    });
+
+    if (selectedOfficer) {
+      const officerNameVal = selectedOfficer.name;
+      setTimeout(() => {
+        setComplaints(current => {
+          const statsList = buildOfficerStats(current);
+          const found = statsList.find(o => o.name === officerNameVal);
+          if (found) setSelectedOfficer(found);
+          return current;
+        });
+      }, 100);
+    }
+  }, [officersList, selectedComplaint, selectedOfficer]);
 
   const wardData: WardScorecardType =
     selectedWardId === 'ALL'
@@ -635,12 +682,30 @@ export default function HomePage() {
                   <div className="space-y-2">
                     <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Assigned Officer</span>
                     {selectedComplaint.assignedOfficer ? (
-                      <div className="bg-blue-50/50 border border-blue-100/50 rounded-xl p-3 text-xs text-gray-700 space-y-1.5">
-                        <div className="font-bold text-blue-900">{selectedComplaint.assignedOfficer.name}</div>
-                        <div className="text-[10px] text-blue-700">{selectedComplaint.assignedOfficer.designation}</div>
-                        <div className="pt-1.5 border-t border-blue-100/40 space-y-1">
-                          <div><strong className="text-blue-900/60">Phone:</strong> {selectedComplaint.assignedOfficer.phone}</div>
-                          <div><strong className="text-blue-900/60">Email:</strong> {selectedComplaint.assignedOfficer.email}</div>
+                      <div className="bg-blue-50/50 border border-blue-100/50 rounded-xl p-3 text-xs text-gray-700 space-y-2">
+                        <div>
+                          <div className="font-bold text-blue-900">{selectedComplaint.assignedOfficer.name}</div>
+                          <div className="text-[10px] text-blue-700">{selectedComplaint.assignedOfficer.designation}</div>
+                        </div>
+                        <div className="pt-2 border-t border-blue-100/40 space-y-1 font-mono text-[10px]">
+                          <div><strong className="text-blue-950/60">Phone:</strong> {selectedComplaint.assignedOfficer.phone}</div>
+                          <div><strong className="text-blue-950/60">Email:</strong> {selectedComplaint.assignedOfficer.email}</div>
+                        </div>
+                        
+                        {/* Direct Shortcuts */}
+                        <div className="flex gap-2 pt-1">
+                          <a
+                            href={`tel:${selectedComplaint.assignedOfficer.phone}`}
+                            className="flex-1 text-center py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold transition-colors"
+                          >
+                            📞 Call Officer
+                          </a>
+                          <a
+                            href={`mailto:${selectedComplaint.assignedOfficer.email}?subject=${encodeURIComponent(`URGENT: SLA Action Required — Complaint ${selectedComplaint.id}`)}&body=${encodeURIComponent(`Respected Officer,\n\nThis is a formal notification regarding active complaint ${selectedComplaint.id} filed on Nagrik Setu.\n\nIssue: ${selectedComplaint.issueDescription}\nLocation: ${selectedComplaint.location.address}\nSLA Deadline: ${new Date(selectedComplaint.slaDeadline).toLocaleString('en-IN')}\n\nPlease resolve this issue immediately to avoid SLA escalation.\n\nWarm regards,\nCitizen`)}`}
+                            className="flex-1 text-center py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-[10px] font-bold transition-colors"
+                          >
+                            ✉️ Send Alert
+                          </a>
                         </div>
                       </div>
                     ) : (
@@ -660,62 +725,132 @@ export default function HomePage() {
                 </>
               )}
 
-              {selectedOfficer && (
-                <>
-                  {/* Officer Info Card */}
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-gray-800 text-sm">{selectedOfficer.name}</h4>
-                      <p className="text-[10px] text-gray-500 mt-0.5">{selectedOfficer.designation}</p>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center font-bold font-serif text-lg bg-orange-100 border border-orange-200 text-orange-700">
-                      {selectedOfficer.grade}
-                    </div>
-                  </div>
+              {selectedOfficer && (() => {
+                const assignedActive = complaints.filter(
+                  c => c.assignedOfficer?.name === selectedOfficer.name && c.status !== 'GENUINELY_RESOLVED'
+                );
+                const workloadStatus =
+                  assignedActive.length > 5 ? { label: 'Overloaded ⚠️', style: 'bg-rose-50 border-rose-200 text-rose-700' } :
+                  assignedActive.length >= 2 ? { label: 'Optimal Workload ✓', style: 'bg-emerald-50 border-emerald-200 text-emerald-700' } :
+                  { label: 'Under-utilized ⚡', style: 'bg-blue-50 border-blue-200 text-blue-700' };
 
-                  {/* Contact Info */}
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Contact Information</span>
-                    <div className="bg-white border border-gray-100 rounded-xl p-3 text-xs space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500">Phone:</span>
-                        <a href={`tel:${selectedOfficer.phone}`} className="font-mono text-blue-600 hover:underline font-semibold">
-                          {selectedOfficer.phone || '+91-98300-12345'}
-                        </a>
+                return (
+                  <>
+                    {/* Officer Info Card */}
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold text-gray-800 text-sm">{selectedOfficer.name}</h4>
+                        <p className="text-[10px] text-gray-500 mt-0.5">{selectedOfficer.designation}</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500">Email:</span>
-                        <a href={`mailto:${selectedOfficer.email}`} className="font-mono text-blue-600 hover:underline font-semibold">
-                          {selectedOfficer.email || 'officer@kmcgov.in'}
-                        </a>
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center font-bold font-serif text-lg bg-orange-100 border border-orange-200 text-orange-700">
+                        {selectedOfficer.grade}
                       </div>
                     </div>
-                  </div>
 
-                  {/* Performance Metrics */}
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Performance Scorecard</span>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
-                        <div className="text-lg font-mono font-bold text-gray-800">{selectedOfficer.performanceScore}</div>
-                        <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">Accountability Score</div>
-                      </div>
-                      <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
-                        <div className="text-lg font-mono font-bold text-emerald-600">{selectedOfficer.resolvedCount}</div>
-                        <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">Resolved (Genuine)</div>
-                      </div>
-                      <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
-                        <div className="text-lg font-mono font-bold text-rose-600">{selectedOfficer.fakeCount}</div>
-                        <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">Fake Closures Flagged</div>
-                      </div>
-                      <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
-                        <div className="text-lg font-mono font-bold text-amber-600">{selectedOfficer.slaBreaches}</div>
-                        <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">SLA Violations</div>
+                    {/* Workload Status */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Workload Assessment</span>
+                      <div className={`border rounded-xl px-3 py-2 text-xs font-bold ${workloadStatus.style}`}>
+                        {workloadStatus.label} ({assignedActive.length} Active Complaints)
                       </div>
                     </div>
-                  </div>
-                </>
-              )}
+
+                    {/* Contact Info & Action Buttons */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Contact Information</span>
+                      <div className="bg-white border border-gray-100 rounded-xl p-3 text-xs space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500">Phone:</span>
+                          <span className="font-mono text-gray-700 font-semibold">{selectedOfficer.phone || '+91-98300-12345'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500">Email:</span>
+                          <span className="font-mono text-gray-700 font-semibold">{selectedOfficer.email || 'officer@kmcgov.in'}</span>
+                        </div>
+                        <div className="flex gap-2 pt-2 border-t border-gray-50">
+                          <a
+                            href={`tel:${selectedOfficer.phone || '+919830012345'}`}
+                            className="flex-1 text-center py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors"
+                          >
+                            📞 Call Officer
+                          </a>
+                          <a
+                            href={`mailto:${selectedOfficer.email || 'officer@kmcgov.in'}`}
+                            className="flex-1 text-center py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition-colors"
+                          >
+                            ✉️ Email Office
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Performance Metrics */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Performance Scorecard</span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                          <div className="text-lg font-mono font-bold text-gray-800">{selectedOfficer.performanceScore}</div>
+                          <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">Accountability Score</div>
+                        </div>
+                        <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                          <div className="text-lg font-mono font-bold text-emerald-600">{selectedOfficer.resolvedCount}</div>
+                          <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">Resolved (Genuine)</div>
+                        </div>
+                        <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                          <div className="text-lg font-mono font-bold text-rose-600">{selectedOfficer.fakeCount}</div>
+                          <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">Fake Closures Flagged</div>
+                        </div>
+                        <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                          <div className="text-lg font-mono font-bold text-amber-600">{selectedOfficer.slaBreaches}</div>
+                          <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">SLA Violations</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Workload Router */}
+                    <div className="space-y-2.5">
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Dispatch & Workload Router 🚚</span>
+                      {assignedActive.length === 0 ? (
+                        <div className="text-xs text-gray-400 italic bg-gray-50 border border-gray-100 rounded-xl p-3 text-center">
+                          No active complaints assigned to this officer.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {assignedActive.map(c => (
+                            <div key={c.id} className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-700">
+                                  {c.id}
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-500 uppercase">
+                                  {c.issueType.replace(/_/g, ' ')}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-gray-600 line-clamp-1">
+                                {c.location.address}
+                              </div>
+                              
+                              {/* Reassignment Dropdown */}
+                              <div className="pt-1.5 border-t border-slate-200/50 flex gap-2 items-center">
+                                <select
+                                  onChange={(e) => handleReassignOfficer(c.id, e.target.value)}
+                                  defaultValue=""
+                                  className="flex-1 text-[10px] border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none bg-white text-gray-700"
+                                >
+                                  <option value="" disabled>Reassign to officer...</option>
+                                  {officersList.filter(o => o.name !== selectedOfficer.name).map(o => (
+                                    <option key={o.name} value={o.name}>{o.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

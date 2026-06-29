@@ -44,7 +44,7 @@ function scoreBg(score: number): string {
   return 'rgba(191,27,14,0.10)';
 }
 
-function buildOfficerStats(complaints: Complaint[]): OfficerStats[] {
+export function buildOfficerStats(complaints: Complaint[]): OfficerStats[] {
   const byOfficer = new Map<string, Complaint[]>();
 
   for (const c of complaints) {
