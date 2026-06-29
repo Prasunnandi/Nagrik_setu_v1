@@ -50,22 +50,32 @@ export const googleProvider = new GoogleAuthProvider();
 // Firestore helpers
 // ─────────────────────────────────────────────
 export async function saveComplaint(complaint: Complaint): Promise<string> {
-  try {
-    const db = getDb();
-    const docRef = await addDoc(collection(db, 'complaints'), {
-      ...complaint,
-      createdAt: new Date().toISOString(),
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error('Firebase save error:', error);
-    if (typeof window !== 'undefined') {
-      const existing = JSON.parse(localStorage.getItem('nagrik_complaints') || '[]');
-      existing.push(complaint);
-      localStorage.setItem('nagrik_complaints', JSON.stringify(existing));
+  let retries = 3;
+  let delay = 500;
+  while (retries > 0) {
+    try {
+      const db = getDb();
+      const docRef = await addDoc(collection(db, 'complaints'), {
+        ...complaint,
+        createdAt: new Date().toISOString(),
+      });
+      return docRef.id;
+    } catch (error) {
+      retries--;
+      if (retries === 0) {
+        console.error('Firebase save error after retries:', error);
+        if (typeof window !== 'undefined') {
+          const existing = JSON.parse(localStorage.getItem('nagrik_complaints') || '[]');
+          existing.push(complaint);
+          localStorage.setItem('nagrik_complaints', JSON.stringify(existing));
+        }
+        return complaint.id;
+      }
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2;
     }
-    return complaint.id;
   }
+  return complaint.id;
 }
 
 export async function getComplaints(userId?: string): Promise<Complaint[]> {
@@ -158,7 +168,7 @@ export async function syncFallbackComplaintToDb(message: string, userName: strin
       portalHelpline: '1916',
       escalations: []
     });
-  } else if (msg.includes('pothole') || msg.includes('road') || msg.includes('dumdum') || msg.includes('gorabazar') || msg.includes('bada pothole')) {
+  } else if (msg.includes('pothole') || msg.includes('bada pothole') || ((msg.includes('road') || msg.includes('street')) && (msg.includes('dumdum') || msg.includes('gorabazar') || msg.includes('damage') || msg.includes('broken')))) {
     await saveComplaint({
       id: 'NG-KOL-20260628-9812',
       issueType: 'POTHOLE',
