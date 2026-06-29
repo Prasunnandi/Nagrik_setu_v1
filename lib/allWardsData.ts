@@ -413,8 +413,68 @@ function generateAllWards(): Ward[] {
 export const ALL_WARDS: Ward[] = generateAllWards();
 
 // ─── Query helpers ──────────────────────────────────────────────────────────
+const FALLBACK_CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
+  GUWAHATI: { lat: 26.1445, lng: 91.7898 },
+  THIRUVANANTHAPURAM: { lat: 8.5241, lng: 76.9366 },
+  LUDHIANA: { lat: 30.9010, lng: 75.8573 },
+  COIMBATORE: { lat: 11.0168, lng: 76.9558 },
+  AGRA: { lat: 27.1767, lng: 78.0081 },
+  VARANASI: { lat: 25.3176, lng: 82.9739 },
+  AMRITSAR: { lat: 31.6340, lng: 74.8723 },
+  NAGERBAZZAR: { lat: 22.6247, lng: 88.4194 },
+  JAIPUR: { lat: 26.9124, lng: 75.7873 },
+  LUCKNOW: { lat: 26.8467, lng: 80.9462 },
+  NAGPUR: { lat: 21.1458, lng: 79.0882 },
+  BHOPAL: { lat: 23.2599, lng: 77.4126 },
+  SURAT: { lat: 21.1702, lng: 72.8311 },
+  INDORE: { lat: 22.7196, lng: 75.8577 },
+  PATNA: { lat: 25.5941, lng: 85.1376 },
+  VISAKHAPATNAM: { lat: 17.6868, lng: 83.2185 },
+  CHANDIGARH: { lat: 30.7333, lng: 76.7794 },
+  KOCHI: { lat: 9.9312, lng: 76.2673 },
+};
+
 export function getWardsByCity(city: string): Ward[] {
-  return ALL_WARDS.filter(w => w.city === city.toUpperCase());
+  const upper = city.toUpperCase();
+  const list = ALL_WARDS.filter(w => w.city === upper);
+  if (list.length > 0) return list;
+
+  const center = FALLBACK_CITY_CENTERS[upper] || { lat: 20.5937, lng: 78.9629 };
+  const virtualWards: Ward[] = [];
+  const body = `${upper.slice(0, 3)}MC`;
+  const zoneNames = ['Zone 1', 'Zone 2', 'Zone 3', 'Zone 4'];
+
+  for (let wardNum = 1; wardNum <= 15; wardNum++) {
+    const seed = wardNum * 17 + upper.charCodeAt(0);
+    const lat = jitter(center.lat, seed, 0.022);
+    const lng = jitter(center.lng, seed + 100, 0.022);
+    
+    const zoneIndex = Math.abs(seed) % zoneNames.length;
+    const zoneName = zoneNames[zoneIndex];
+    const zoneCode = `${upper.slice(0, 3)}-Z0${zoneIndex + 1}`;
+
+    const score = Math.floor(Math.sin(seed) * 35) + 55; // 20-90
+    const grade = score >= 80 ? 'A' : score >= 65 ? 'B' : score >= 50 ? 'C' : score >= 35 ? 'D' : 'F';
+
+    virtualWards.push({
+      id: `${upper.slice(0, 3)}-${String(wardNum).padStart(3, '0')}`,
+      wardNumber: wardNum,
+      wardName: `${upper.charAt(0) + upper.slice(1).toLowerCase()} Ward ${wardNum}`,
+      city: upper as any,
+      municipalBody: body,
+      zone: zoneName,
+      zoneCode: zoneCode,
+      lat,
+      lng,
+      councillorName: `Hon. Representative ${wardNum}`,
+      councillorParty: Math.sin(seed + 1) > 0 ? 'BJP' : 'INC',
+      mlaConstituency: `${upper} Constituency`,
+      mpConstituency: `${upper} Lok Sabha`,
+      overallScore: score,
+      grade,
+    });
+  }
+  return virtualWards;
 }
 
 export function getWardsByZone(city: string, zoneCode: string): Ward[] {
