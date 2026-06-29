@@ -343,7 +343,7 @@ export default function CivicMap({ complaints, ward }: Props) {
   // Listen to ward prop changes from parent (search, dashboard tab, etc.)
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current || !ward) return;
-    const resolved = ALL_WARDS.find(w => w.id === ward.wardId || (w.wardNumber === ward.wardNumber && w.city.toUpperCase() === ward.city.toUpperCase()));
+    const resolved = ALL_WARDS.find(w => w.id === (ward as any).wardId || (w.wardNumber === ward.wardNumber && w.city.toUpperCase() === ward.city.toUpperCase()));
     if (resolved) {
       setSelectedWard(resolved);
       setSelectedZone(null);

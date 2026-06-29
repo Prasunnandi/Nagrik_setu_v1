@@ -133,86 +133,114 @@ export async function syncFallbackComplaintToDb(message: string, userName: strin
   if (msg.includes('demo') || msg.includes('show me') || msg.includes('hackathon')) {
     await saveComplaint({
       id: 'NS-KOL-20260629-3847',
-      issueType: 'SOLID_WASTE',
+      issueType: 'GARBAGE',
+      issueDescription: 'Garbage accumulation near Ward 57',
       severity: 'HIGH',
+      priority: 'P2',
       status: 'FILED',
       location: {
         lat: 22.5786,
         lng: 88.3786,
         address: 'Ward 57, Kolkata (KMC)',
         ward: 'Ward 57',
+        area: 'Ward 57',
         city: 'KOLKATA',
         wardNumber: 57
       },
       department: 'Solid Waste Management',
       municipalBody: 'Kolkata Municipal Corporation',
       filedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
       userId: userId,
       userName: userName,
-      description: 'Garbage accumulation near Ward 57'
+      slaHours: 24,
+      slaDeadline: new Date(Date.now() + 24 * 3600000).toISOString(),
+      portalHelpline: '1916',
+      escalations: []
     });
   } else if (msg.includes('pothole') || msg.includes('road') || msg.includes('dumdum') || msg.includes('gorabazar') || msg.includes('bada pothole')) {
     await saveComplaint({
       id: 'NG-KOL-20260628-9812',
       issueType: 'POTHOLE',
+      issueDescription: 'Road mein bada pothole hai — vehicle damage ho raha hai',
       severity: 'HIGH',
+      priority: 'P2',
       status: 'FILED',
       location: {
         lat: 22.6120,
         lng: 88.4230,
         address: 'Gorabazar, Dum Dum Cantonment (North 24 Parganas, 700028)',
         ward: 'Dum Dum',
+        area: 'Dum Dum',
         city: 'KOLKATA',
         wardNumber: 57
       },
       department: 'Roads & Engineering',
       municipalBody: 'Kolkata Municipal Corporation',
       filedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
       userId: userId,
       userName: userName,
-      description: 'Road mein bada pothole hai — vehicle damage ho raha hai'
+      slaHours: 24,
+      slaDeadline: new Date(Date.now() + 24 * 3600000).toISOString(),
+      portalHelpline: '1916',
+      escalations: []
     });
   } else if (msg.includes('light') || msg.includes('electricity') || msg.includes('dark')) {
     await saveComplaint({
       id: 'NG-KOL-20260628-5511',
       issueType: 'STREET_LIGHT',
+      issueDescription: 'Street lights not working',
       severity: 'MEDIUM',
+      priority: 'P3',
       status: 'FILED',
       location: {
         lat: 22.5802,
         lng: 88.3755,
         address: 'Ward 57, Ultadanga, Kolkata',
         ward: 'Ward 57',
+        area: 'Ward 57',
         city: 'KOLKATA',
         wardNumber: 57
       },
       department: 'Lighting & Electricity',
       municipalBody: 'Kolkata Municipal Corporation',
       filedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
       userId: userId,
       userName: userName,
-      description: 'Street lights not working'
+      slaHours: 48,
+      slaDeadline: new Date(Date.now() + 48 * 3600000).toISOString(),
+      portalHelpline: '1916',
+      escalations: []
     });
   } else if (msg.includes('garbage') || msg.includes('kachra') || msg.includes('dustbin') || msg.includes('clean')) {
     await saveComplaint({
       id: 'NG-KOL-20260628-3847',
-      issueType: 'SOLID_WASTE',
+      issueType: 'GARBAGE',
+      issueDescription: 'Kachra/Garbage accumulation',
       severity: 'HIGH',
+      priority: 'P2',
       status: 'FILED',
       location: {
         lat: 22.5786,
         lng: 88.3786,
         address: 'Ward 57, Ultadanga, Kolkata',
         ward: 'Ward 57',
+        area: 'Ward 57',
         city: 'KOLKATA',
         wardNumber: 57
       },
       department: 'Solid Waste Management',
       municipalBody: 'Kolkata Municipal Corporation',
       filedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
       userId: userId,
       userName: userName,
-      description: 'Kachra/Garbage accumulation'
+      slaHours: 24,
+      slaDeadline: new Date(Date.now() + 24 * 3600000).toISOString(),
+      portalHelpline: '1916',
+      escalations: []
     });
   }
 }

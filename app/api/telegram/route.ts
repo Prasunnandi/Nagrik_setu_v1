@@ -205,22 +205,29 @@ export async function POST(req: NextRequest) {
         await saveComplaint({
           id: complaintId,
           issueType: (issue.toLowerCase().includes('pothole') ? 'POTHOLE' : 'SOLID_WASTE') as any,
+          issueDescription: `Filed via Telegram Photo. Caption: ${caption || 'none'}`,
           severity: 'HIGH',
+          priority: 'P2',
           status: 'FILED',
           location: {
             lat: 22.5726,
             lng: 88.3639,
             address: location,
             ward: 'Ward 57',
+            area: 'Ward 57',
             city: 'KOLKATA',
             wardNumber: 57
           },
           department: dept,
           municipalBody: 'Kolkata Municipal Corporation',
           filedAt: new Date().toISOString(),
+          lastUpdatedAt: new Date().toISOString(),
           userId: `telegram-${chatId}`,
           userName: userName,
-          description: `Filed via Telegram Photo. Caption: ${caption || 'none'}`
+          slaHours: 24,
+          slaDeadline: new Date(Date.now() + 24 * 3600000).toISOString(),
+          portalHelpline: '1916',
+          escalations: []
         });
 
         const reply = sub(

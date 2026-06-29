@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: unknown) {
     console.error('Chat API outer error:', error);
-    const fallbackText = getFallbackReply('', 'Citizen', activeDomain);
+    const fallbackText = getFallbackReply('', 'Citizen', 'nagrik-setu.vercel.app');
     syncGeminiReplyToDb(fallbackText, '', 'Citizen', 'web-chat').catch(console.error);
     const encoder = new TextEncoder();
     const stream = new ReadableStream({

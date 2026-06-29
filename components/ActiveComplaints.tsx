@@ -104,7 +104,7 @@ export default function ActiveComplaints({ complaints, onUpdate, simNow = Date.n
     return (
       (c.id || '').toLowerCase().includes(q) ||
       (c.issueType || '').toLowerCase().includes(q) ||
-      (c.issueDescription || c.description || '').toLowerCase().includes(q) ||
+      (c.issueDescription || (c as any).description || '').toLowerCase().includes(q) ||
       (c.location?.ward || '').toLowerCase().includes(q) ||
       (c.location?.area || '').toLowerCase().includes(q) ||
       (c.location?.city || '').toLowerCase().includes(q) ||

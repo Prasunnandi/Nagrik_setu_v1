@@ -93,6 +93,8 @@ export interface Complaint {
   resolvedAt?: string;
   resolveProofPhotos?: string[];   // base64 proof photos submitted by citizen
   resolveNote?: string;            // citizen's note when submitting resolution proof
+  userId?: string;
+  userName?: string;
 }
 
 export interface WardScorecard {
