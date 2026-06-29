@@ -7,9 +7,10 @@ import { Complaint } from '@/lib/types';
 
 interface Props {
   complaints: Complaint[];
+  onSelectOfficer?: (officer: OfficerStats) => void;
 }
 
-interface OfficerStats {
+export interface OfficerStats {
   name: string;
   designation: string;
   totalComplaints: number;
@@ -19,6 +20,8 @@ interface OfficerStats {
   slaBreaches: number;
   performanceScore: number;
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  phone?: string;
+  email?: string;
 }
 
 function computeGrade(score: number): 'A' | 'B' | 'C' | 'D' | 'F' {
@@ -93,6 +96,8 @@ function buildOfficerStats(complaints: Complaint[]): OfficerStats[] {
       slaBreaches,
       performanceScore,
       grade,
+      phone: officer.phone,
+      email: officer.email,
     });
   });
 
@@ -146,12 +151,13 @@ function StatChip({ label, value, color }: { label: string; value: string | numb
   );
 }
 
-function OfficerCard({ officer }: { officer: OfficerStats }) {
+function OfficerCard({ officer, onClick }: { officer: OfficerStats; onClick?: () => void }) {
   const color = scoreColor(officer.performanceScore);
   const bg = scoreBg(officer.performanceScore);
 
   return (
     <div
+      onClick={onClick}
       style={{
         background: '#fff',
         border: '1px solid var(--ns-bd)',
@@ -160,7 +166,9 @@ function OfficerCard({ officer }: { officer: OfficerStats }) {
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
+        cursor: onClick ? 'pointer' : 'default',
       }}
+      className="transition-transform hover:scale-[1.01] hover:shadow-sm"
     >
       {/* Top row: score badge + name + grade */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -311,7 +319,7 @@ function OfficerCard({ officer }: { officer: OfficerStats }) {
   );
 }
 
-export default function OfficerLeaderboard({ complaints }: Props) {
+export default function OfficerLeaderboard({ complaints, onSelectOfficer }: Props) {
   const [filter, setFilter] = useState<FilterType>('all');
 
   const allOfficers = useMemo(() => buildOfficerStats(complaints), [complaints]);
@@ -507,7 +515,7 @@ export default function OfficerLeaderboard({ complaints }: Props) {
                   #{i + 1}
                 </div>
               )}
-              <OfficerCard officer={officer} />
+              <OfficerCard officer={officer} onClick={() => onSelectOfficer && onSelectOfficer(officer)} />
             </div>
           ))}
         </div>

@@ -17,7 +17,7 @@ import { loadComplaints, upsertComplaint } from '@/lib/persistence';
 import { subscribeComplaints, saveComplaint, updateComplaintStatus } from '@/lib/firebase';
 import { Map as MapIcon, MessageSquare, BarChart3, Users, Search, X, PieChart, Clock, RotateCcw, Play, Trophy } from 'lucide-react';
 import DemoTour from '@/components/DemoTour';
-import OfficerLeaderboard from '@/components/OfficerLeaderboard';
+import OfficerLeaderboard, { OfficerStats } from '@/components/OfficerLeaderboard';
 
 // ── Simulated Clock Bar ─────────────────────────────────────────────────────
 function SimClockBar({ offsetMs, onAdvance, onReset, onStartTour }: {
@@ -182,6 +182,33 @@ function wardFromAllData(wardId: string): WardScorecardType | null {
   };
 }
 
+const nationalScorecard: WardScorecardType = {
+  wardNumber: 0,
+  wardName: 'All Wards (India)',
+  city: 'NATIONAL',
+  overallScore: 54,
+  grade: 'C',
+  genuineResolutionRate: 48,
+  avgResolutionDays: 12,
+  slaComplianceRate: 64,
+  fakeClosureRate: 14,
+  escalationRate: 18,
+  complaintVolume: 12450,
+  topIssues: [
+    { type: 'POTHOLE', count: 4320 },
+    { type: 'GARBAGE', count: 3850 },
+    { type: 'STREET_LIGHT', count: 1840 },
+  ],
+  councillorName: 'Multiple representatives',
+  councillorParty: 'Various',
+  councillorRating: 5.2,
+  councillorMeetingsAttended: 8,
+  councillorTotalMeetings: 12,
+  cityAvgScore: 54,
+  wardRank: 1,
+  totalWards: 2600,
+};
+
 export default function HomePage() {
   const [complaints, setComplaints] = useState<Complaint[]>(MOCK_COMPLAINTS);
   const [activeTab, setActiveTab] = useState<DashboardTab>('map');
@@ -212,16 +239,20 @@ export default function HomePage() {
     [complaints, simOffset, simNow]
   );
   const [mobileView, setMobileView] = useState<'chat' | 'dashboard'>('chat');
-  const [selectedWardId, setSelectedWardId] = useState('KOL-57');
+  const [selectedWardId, setSelectedWardId] = useState('ALL');
   const [wardSearch, setWardSearch] = useState('');
   const [wardSearchResults, setWardSearchResults] = useState<Ward[]>([]);
   const [wardPickerOpen, setWardPickerOpen] = useState(false);
   const wardPickerRef = useRef<HTMLDivElement>(null);
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+  const [selectedOfficer, setSelectedOfficer] = useState<OfficerStats | null>(null);
 
   const wardData: WardScorecardType =
-    MOCK_WARD_SCORES[selectedWardId] ||
-    wardFromAllData(selectedWardId) ||
-    MOCK_WARD_SCORES['KOL-57'];
+    selectedWardId === 'ALL'
+      ? nationalScorecard
+      : MOCK_WARD_SCORES[selectedWardId] ||
+        wardFromAllData(selectedWardId) ||
+        MOCK_WARD_SCORES['KOL-57'];
 
   const handleWardSearch = (q: string) => {
     setWardSearch(q);
@@ -437,8 +468,8 @@ export default function HomePage() {
                   className="flex-1 focus:outline-none bg-transparent text-gray-700 min-w-0"
                   style={{ fontSize: 11 }}
                 />
-                {wardSearch && (
-                  <button onMouseDown={() => { setWardSearch(''); setWardSearchResults([]); }}
+                {(wardSearch || selectedWardId !== 'ALL') && (
+                  <button onMouseDown={() => { setSelectedWardId('ALL'); setWardSearch(''); setWardSearchResults([]); }}
                     className="text-gray-300 hover:text-gray-500 flex-shrink-0"><X size={10} /></button>
                 )}
               </div>
@@ -486,6 +517,7 @@ export default function HomePage() {
                 complaints={displayComplaints}
                 onUpdate={handleComplaintUpdate}
                 simNow={simNow}
+                onSelectComplaint={setSelectedComplaint}
               />
             )}
             {activeTab === 'scorecard' && (
@@ -502,7 +534,7 @@ export default function HomePage() {
             )}
             {activeTab === 'officers' && (
               <div className="h-full overflow-y-auto">
-                <OfficerLeaderboard complaints={displayComplaints} />
+                <OfficerLeaderboard complaints={displayComplaints} onSelectOfficer={setSelectedOfficer} />
               </div>
             )}
           </div>
@@ -517,6 +549,176 @@ export default function HomePage() {
           onLoadDemo={handleLoadDemo}
           onAdvanceClock={ms => setSimOffset(prev => prev + ms)}
         />
+      )}
+
+      {/* Sidebar Details Drawer */}
+      {(selectedComplaint || selectedOfficer) && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+            onClick={() => { setSelectedComplaint(null); setSelectedOfficer(null); }}
+          />
+
+          {/* Drawer Panel */}
+          <div
+            className="relative w-full max-w-md h-full bg-white shadow-2xl flex flex-col z-10 transition-transform duration-300 ease-out"
+            style={{ borderLeft: '1px solid var(--ns-bd)' }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 flex-shrink-0">
+              <h3 style={{ fontFamily: "'Playfair Display', serif" }} className="font-bold text-base text-gray-800">
+                {selectedComplaint ? 'Complaint Details' : 'Officer Details'}
+              </h3>
+              <button
+                onClick={() => { setSelectedComplaint(null); setSelectedOfficer(null); }}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {selectedComplaint && (
+                <>
+                  {/* Status & ID */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded bg-gray-100 text-gray-600 uppercase">
+                      {selectedComplaint.id}
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                      selectedComplaint.status === 'GENUINELY_RESOLVED' ? 'bg-emerald-50 text-emerald-600' :
+                      selectedComplaint.status === 'FAKE_CLOSURE_DETECTED' ? 'bg-rose-50 text-rose-600' :
+                      'bg-amber-50 text-amber-600'
+                    }`}>
+                      {selectedComplaint.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+
+                  {/* Issue Category & Description */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Issue Details</span>
+                    <div className="flex items-center gap-2 font-bold text-gray-800 text-sm">
+                      <span className="text-xl">
+                        {selectedComplaint.issueType === 'POTHOLE' ? '🕳️' :
+                         selectedComplaint.issueType === 'GARBAGE' ? '🗑️' :
+                         selectedComplaint.issueType === 'STREET_LIGHT' ? '💡' :
+                         selectedComplaint.issueType === 'WATER_SUPPLY' ? '💧' :
+                         selectedComplaint.issueType === 'SEWAGE' ? '🚽' :
+                         selectedComplaint.issueType === 'DRAINAGE' ? '🌊' : '⚠️'}
+                      </span>
+                      <span>{selectedComplaint.issueType.replace(/_/g, ' ')}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold uppercase ml-auto bg-amber-100 text-amber-700">
+                        {selectedComplaint.severity} Priority
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 bg-gray-50 rounded-xl p-3 border border-gray-100 leading-relaxed">
+                      {selectedComplaint.issueDescription}
+                    </p>
+                  </div>
+
+                  {/* Location Info */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Location Details</span>
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs text-gray-700 space-y-1.5">
+                      <div><strong className="text-gray-500">Address:</strong> {selectedComplaint.location.address}</div>
+                      <div className="flex items-center gap-4">
+                        <div><strong className="text-gray-500">Ward:</strong> {selectedComplaint.location.ward}</div>
+                        <div><strong className="text-gray-500">Ward No:</strong> {selectedComplaint.location.wardNumber}</div>
+                        <div><strong className="text-gray-500">City:</strong> {selectedComplaint.location.city}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Assigned Officer */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Assigned Officer</span>
+                    {selectedComplaint.assignedOfficer ? (
+                      <div className="bg-blue-50/50 border border-blue-100/50 rounded-xl p-3 text-xs text-gray-700 space-y-1.5">
+                        <div className="font-bold text-blue-900">{selectedComplaint.assignedOfficer.name}</div>
+                        <div className="text-[10px] text-blue-700">{selectedComplaint.assignedOfficer.designation}</div>
+                        <div className="pt-1.5 border-t border-blue-100/40 space-y-1">
+                          <div><strong className="text-blue-900/60">Phone:</strong> {selectedComplaint.assignedOfficer.phone}</div>
+                          <div><strong className="text-blue-900/60">Email:</strong> {selectedComplaint.assignedOfficer.email}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-400 italic">No officer assigned yet.</div>
+                    )}
+                  </div>
+
+                  {/* SLA Timeline */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">SLA Timeline</span>
+                    <div className="bg-orange-50/40 border border-orange-100/40 rounded-xl p-3 text-xs text-gray-700 space-y-1">
+                      <div><strong className="text-orange-950/60">Deadline:</strong> {new Date(selectedComplaint.slaDeadline).toLocaleString('en-IN')}</div>
+                      <div><strong className="text-orange-950/60">SLA Duration:</strong> {selectedComplaint.slaHours} hours</div>
+                      <div><strong className="text-orange-950/60">Filed Date:</strong> {new Date(selectedComplaint.filedAt).toLocaleString('en-IN')}</div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {selectedOfficer && (
+                <>
+                  {/* Officer Info Card */}
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-gray-800 text-sm">{selectedOfficer.name}</h4>
+                      <p className="text-[10px] text-gray-500 mt-0.5">{selectedOfficer.designation}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center font-bold font-serif text-lg bg-orange-100 border border-orange-200 text-orange-700">
+                      {selectedOfficer.grade}
+                    </div>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Contact Information</span>
+                    <div className="bg-white border border-gray-100 rounded-xl p-3 text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Phone:</span>
+                        <a href={`tel:${selectedOfficer.phone}`} className="font-mono text-blue-600 hover:underline font-semibold">
+                          {selectedOfficer.phone || '+91-98300-12345'}
+                        </a>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Email:</span>
+                        <a href={`mailto:${selectedOfficer.email}`} className="font-mono text-blue-600 hover:underline font-semibold">
+                          {selectedOfficer.email || 'officer@kmcgov.in'}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Performance Metrics */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block">Performance Scorecard</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                        <div className="text-lg font-mono font-bold text-gray-800">{selectedOfficer.performanceScore}</div>
+                        <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">Accountability Score</div>
+                      </div>
+                      <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                        <div className="text-lg font-mono font-bold text-emerald-600">{selectedOfficer.resolvedCount}</div>
+                        <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">Resolved (Genuine)</div>
+                      </div>
+                      <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                        <div className="text-lg font-mono font-bold text-rose-600">{selectedOfficer.fakeCount}</div>
+                        <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">Fake Closures Flagged</div>
+                      </div>
+                      <div className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                        <div className="text-lg font-mono font-bold text-amber-600">{selectedOfficer.slaBreaches}</div>
+                        <div className="text-[8px] text-gray-400 uppercase tracking-wider mt-0.5">SLA Violations</div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

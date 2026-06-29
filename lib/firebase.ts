@@ -4,7 +4,7 @@ import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore, collection, addDoc, getDocs, updateDoc, doc, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
-import { Complaint } from './types';
+import { Complaint, IssueCategory } from './types';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -259,20 +259,42 @@ export async function syncGeminiReplyToDb(reply: string, userText: string, userN
 
     const lowerReply = reply.toLowerCase();
     const lowerUserText = (userText || '').toLowerCase();
-    let issueType: 'POTHOLE' | 'GARBAGE' | 'STREET_LIGHT' | 'WATER_SUPPLY' | 'SEWAGE' | 'DRAINAGE' | 'OTHER' = 'GARBAGE';
+    let issueType: IssueCategory = 'GARBAGE';
 
-    if (lowerReply.includes('pothole') || lowerReply.includes('road') || lowerUserText.includes('pothole') || lowerUserText.includes('road')) {
+    if (lowerReply.includes('pothole') || lowerReply.includes('gaddha') || lowerUserText.includes('pothole') || lowerUserText.includes('gaddha') || lowerReply.includes('road damage') || lowerUserText.includes('road damage')) {
       issueType = 'POTHOLE';
-    } else if (lowerReply.includes('light') || lowerReply.includes('electricity') || lowerUserText.includes('light') || lowerUserText.includes('electricity')) {
+    } else if (lowerReply.includes('light') || lowerReply.includes('electricity') || lowerUserText.includes('light') || lowerUserText.includes('electricity') || lowerReply.includes('bulb') || lowerUserText.includes('bulb')) {
       issueType = 'STREET_LIGHT';
-    } else if (lowerReply.includes('water') || lowerReply.includes('supply') || lowerReply.includes('paani') || lowerReply.includes('pani') || lowerUserText.includes('water') || lowerUserText.includes('supply') || lowerUserText.includes('paani') || lowerUserText.includes('pani')) {
+    } else if (lowerReply.includes('water supply') || lowerReply.includes('tap') || lowerUserText.includes('water supply') || lowerUserText.includes('tap') || lowerReply.includes('no water') || lowerUserText.includes('no water')) {
       issueType = 'WATER_SUPPLY';
-    } else if (lowerReply.includes('sewage') || lowerReply.includes('sewer') || lowerUserText.includes('sewage') || lowerUserText.includes('sewer')) {
+    } else if (lowerReply.includes('sewage') || lowerReply.includes('sewer') || lowerUserText.includes('sewage') || lowerUserText.includes('sewer') || lowerReply.includes('toilet') || lowerUserText.includes('toilet')) {
       issueType = 'SEWAGE';
-    } else if (lowerReply.includes('drain') || lowerReply.includes('flooding') || lowerUserText.includes('drain') || lowerUserText.includes('flooding')) {
+    } else if (lowerReply.includes('drain') || lowerReply.includes('flooding') || lowerReply.includes('waterlog') || lowerUserText.includes('drain') || lowerUserText.includes('flooding') || lowerUserText.includes('waterlog')) {
       issueType = 'DRAINAGE';
-    } else if (lowerReply.includes('garbage') || lowerReply.includes('waste') || lowerReply.includes('trash') || lowerUserText.includes('garbage') || lowerUserText.includes('waste') || lowerUserText.includes('trash')) {
+    } else if (lowerReply.includes('garbage') || lowerReply.includes('waste') || lowerReply.includes('trash') || lowerReply.includes('kachra') || lowerReply.includes('clean') || lowerUserText.includes('garbage') || lowerUserText.includes('waste') || lowerUserText.includes('trash') || lowerUserText.includes('kachra') || lowerUserText.includes('clean')) {
       issueType = 'GARBAGE';
+    } else if (lowerReply.includes('tree') || lowerReply.includes('ped') || lowerUserText.includes('tree') || lowerUserText.includes('ped')) {
+      issueType = 'TREE_FALLEN';
+    } else if (lowerReply.includes('wire') || lowerReply.includes('cable') || lowerReply.includes('electric wire') || lowerUserText.includes('wire') || lowerUserText.includes('cable') || lowerUserText.includes('electric wire')) {
+      issueType = 'FALLEN_WIRE';
+    } else if (lowerReply.includes('dog') || lowerReply.includes('stray') || lowerUserText.includes('dog') || lowerUserText.includes('stray')) {
+      issueType = 'STRAY_DOG';
+    } else if (lowerReply.includes('animal') || lowerReply.includes('dead') || lowerUserText.includes('animal') || lowerUserText.includes('dead')) {
+      issueType = 'DEAD_ANIMAL';
+    } else if (lowerReply.includes('burn') || lowerReply.includes('smoke') || lowerReply.includes('fire') || lowerUserText.includes('burn') || lowerUserText.includes('smoke') || lowerUserText.includes('fire')) {
+      issueType = 'BURNING_WASTE';
+    } else if (lowerReply.includes('noise') || lowerReply.includes('loud') || lowerReply.includes('speaker') || lowerUserText.includes('noise') || lowerUserText.includes('loud') || lowerUserText.includes('speaker')) {
+      issueType = 'NOISE_POLLUTION';
+    } else if (lowerReply.includes('air') || lowerReply.includes('smog') || lowerUserText.includes('air') || lowerUserText.includes('smog')) {
+      issueType = 'AIR_POLLUTION';
+    } else if (lowerReply.includes('footpath') || lowerReply.includes('sidewalk') || lowerUserText.includes('footpath') || lowerUserText.includes('sidewalk')) {
+      issueType = 'BROKEN_FOOTPATH';
+    } else if (lowerReply.includes('manhole') || lowerReply.includes('gutter cover') || lowerUserText.includes('manhole') || lowerUserText.includes('gutter cover')) {
+      issueType = 'MANHOLE';
+    } else if (lowerReply.includes('encroach') || lowerReply.includes('occupy') || lowerReply.includes('blocking') || lowerUserText.includes('encroach') || lowerUserText.includes('occupy') || lowerUserText.includes('blocking')) {
+      issueType = 'ENCROACHMENT';
+    } else if (lowerReply.includes('illegal') || lowerReply.includes('construction') || lowerUserText.includes('illegal') || lowerUserText.includes('construction')) {
+      issueType = 'ILLEGAL_CONSTRUCTION';
     } else {
       issueType = 'OTHER';
     }

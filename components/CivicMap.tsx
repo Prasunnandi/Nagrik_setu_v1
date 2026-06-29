@@ -31,6 +31,7 @@ const CITY_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> =
   HYDERABAD: { lat: 17.3850, lng: 78.4867, zoom: 11 },
   PUNE:      { lat: 18.5204, lng: 73.8567, zoom: 12 },
   AHMEDABAD: { lat: 23.0225, lng: 72.5714, zoom: 12 },
+  NATIONAL:  { lat: 20.5937, lng: 78.9629, zoom: 5 },
 };
 const STATUS_ICONS: Record<string, string> = {
   FILED: '📋', ASSIGNED: '👤', IN_PROGRESS: '🔄', RESOLVED_CLAIMED: '⚠️',
@@ -356,6 +357,12 @@ export default function CivicMap({ complaints, ward }: Props) {
       } else {
         infoWindowRef.current?.close();
       }
+    } else if (ward.city.toUpperCase() === 'NATIONAL') {
+      setSelectedWard(null);
+      setSelectedZone(null);
+      mapInstanceRef.current.panTo({ lat: 20.5937, lng: 78.9629 });
+      mapInstanceRef.current.setZoom(5);
+      infoWindowRef.current?.close();
     }
   }, [ward, mapReady]);
 

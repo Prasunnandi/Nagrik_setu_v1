@@ -79,10 +79,11 @@ function SLACountdown({ deadline, status, now = Date.now() }: { deadline: string
   );
 }
 
-export default function ActiveComplaints({ complaints, onUpdate, simNow = Date.now() }: {
+export default function ActiveComplaints({ complaints, onUpdate, simNow = Date.now(), onSelectComplaint }: {
   complaints: Complaint[];
   onUpdate: (c: Complaint) => void;
   simNow?: number;
+  onSelectComplaint?: (c: Complaint) => void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'urgent' | 'fake' | 'resolved'>('all');
@@ -284,7 +285,10 @@ export default function ActiveComplaints({ complaints, onUpdate, simNow = Date.n
               complaint={complaint}
               demoId={idx === 0 ? 'complaint-first-card' : undefined}
               isExpanded={expanded === complaint.id}
-              onToggle={() => setExpanded(e => e === complaint.id ? null : complaint.id)}
+              onToggle={() => {
+                setExpanded(e => e === complaint.id ? null : complaint.id);
+                if (onSelectComplaint) onSelectComplaint(complaint);
+              }}
               onEscalate={() => sendEscalationEmail(complaint)}
               onDraftRTI={() => setRtiComplaint(complaint)}
               onCopyLink={() => copyLink(complaint.id)}

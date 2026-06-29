@@ -295,7 +295,10 @@ async function callGeminiWithHistory(chatId: number, userName: string, domain: s
   try {
     const chatHistory = history.slice(0, -1);
     const ai    = new GoogleGenerativeAI(geminiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: SYSTEM_PROMPT.replace(/nagrik-setu\.vercel\.app/g, domain) });
+    const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const todayLabel = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    const systemPromptWithDate = `${SYSTEM_PROMPT}\n\nCURRENT DATE CONTEXT: Today's date is ${todayLabel} (formatted as ${todayStr} for complaint IDs). Ensure any new complaint ID generated uses exactly ${todayStr} as the date part (e.g. NS-KOL-${todayStr}-XXXX).`;
+    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: systemPromptWithDate.replace(/nagrik-setu\.vercel\.app/g, domain) });
     const chat  = model.startChat({ history: chatHistory });
     
     // Add strict 4.5 second timeout to prevent webhook 408 timeout

@@ -343,9 +343,13 @@ After Turn 5 add: "Yeh 5-step journey hai ek civic complaint ki — file se leka
 // Model Configuration
 // ─────────────────────────────────────────────
 export function getGeminiModel(): GenerativeModel {
+  const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const todayLabel = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const systemPromptWithDate = `${NAGRIK_SETU_SYSTEM_PROMPT}\n\nCURRENT DATE CONTEXT: Today's date is ${todayLabel} (formatted as ${todayStr} for complaint IDs). Ensure any new complaint ID generated uses exactly ${todayStr} as the date part (e.g. NS-KOL-${todayStr}-XXXX).`;
+
   return genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
-    systemInstruction: NAGRIK_SETU_SYSTEM_PROMPT,
+    systemInstruction: systemPromptWithDate,
     generationConfig: {
       temperature: 0.3,
       topP: 0.85,
