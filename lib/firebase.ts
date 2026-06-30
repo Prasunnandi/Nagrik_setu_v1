@@ -255,8 +255,36 @@ export async function syncFallbackComplaintToDb(message: string, userName: strin
   }
 }
 
-export async function syncGeminiReplyToDb(reply: string, userText: string, userName: string, userId: string): Promise<void> {
+function getOriginalIssueText(userText: string, history?: any[]): string {
+  const cleanText = userText.toLowerCase().trim();
+  const genericConfirmations = ['yes', 'confirm', 'ok', 'correct', 'fine', 'yes it is', 'yeah', 'yep', 'haan', 'haji', 'sahi hai', 'agree', 'proceed'];
+  
+  if (genericConfirmations.includes(cleanText) || cleanText.length <= 4) {
+    if (history && Array.isArray(history)) {
+      for (let i = history.length - 1; i >= 0; i--) {
+        const item = history[i];
+        let contentText = '';
+        if (item.content && typeof item.content === 'string') {
+          contentText = item.content;
+        } else if (item.parts && Array.isArray(item.parts) && item.parts[0]?.text) {
+          contentText = item.parts[0].text;
+        }
+        
+        if (item.role === 'user' && contentText) {
+          const clean = contentText.toLowerCase().trim();
+          if (!genericConfirmations.includes(clean) && clean.length > 4) {
+            return contentText;
+          }
+        }
+      }
+    }
+  }
+  return userText;
+}
+
+export async function syncGeminiReplyToDb(reply: string, userText: string, userName: string, userId: string, history?: any[]): Promise<void> {
   try {
+    const resolvedUserText = getOriginalIssueText(userText, history);
     const idMatch = reply.match(/(?:ID|Complaint ID)[:\s*]*([NS|NG]{2}-[A-Z]{3}-\d{8}-\d{4})/i);
     if (!idMatch) return;
     const complaintId = idMatch[1].toUpperCase();
@@ -268,7 +296,7 @@ export async function syncGeminiReplyToDb(reply: string, userText: string, userN
     const department = deptMatch ? deptMatch[1].replace(/^(?:Department|🏛️)[:\s]*/i, '').trim().replace(/[*\-\s]+$/, '') : 'Municipal Services';
 
     const lowerReply = reply.toLowerCase();
-    const lowerUserText = (userText || '').toLowerCase();
+    const lowerUserText = (resolvedUserText || '').toLowerCase();
     let issueType: IssueCategory = 'GARBAGE';
 
     if (lowerReply.includes('pothole') || lowerReply.includes('gaddha') || lowerUserText.includes('pothole') || lowerUserText.includes('gaddha') || lowerReply.includes('road damage') || lowerUserText.includes('road damage')) {
@@ -352,7 +380,7 @@ export async function syncGeminiReplyToDb(reply: string, userText: string, userN
     await saveComplaint({
       id: complaintId,
       issueType,
-      issueDescription: userText || `Civic issue reported via chatbot: ${issueType.replace(/_/g, ' ')}`,
+      issueDescription: resolvedUserText || `Civic issue reported via chatbot: ${issueType.replace(/_/g, ' ')}`,
       severity,
       priority,
       status: 'FILED',

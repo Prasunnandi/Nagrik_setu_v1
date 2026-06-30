@@ -73,14 +73,14 @@ export async function POST(request: NextRequest) {
               }
             }
             if (fullText) {
-              syncGeminiReplyToDb(fullText, message || '', 'Citizen', 'web-chat').catch(console.error);
+              syncGeminiReplyToDb(fullText, message || '', 'Citizen', 'web-chat', history).catch(console.error);
             }
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
             controller.close();
           } catch (err) {
             console.error('[Chat] Stream chunk error, falling back:', err);
             const fallbackText = getFallbackReply(message || '', 'Citizen', activeDomain);
-            await syncGeminiReplyToDb(fallbackText, message || '', 'Citizen', 'web-chat').catch(console.error);
+            await syncGeminiReplyToDb(fallbackText, message || '', 'Citizen', 'web-chat', history).catch(console.error);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: fallbackText })}\n\n`));
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
             controller.close();
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     } catch (geminiError) {
       console.warn('[Chat] Gemini start error, falling back to ready-made:', geminiError);
       const fallbackText = getFallbackReply(message || '', 'Citizen', activeDomain);
-      syncGeminiReplyToDb(fallbackText, message || '', 'Citizen', 'web-chat').catch(console.error);
+      syncGeminiReplyToDb(fallbackText, message || '', 'Citizen', 'web-chat', history).catch(console.error);
       stream = new ReadableStream({
         start(controller) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: fallbackText })}\n\n`));

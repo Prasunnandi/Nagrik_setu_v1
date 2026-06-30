@@ -19,6 +19,24 @@ interface Props {
   existingComplaints: Complaint[];
 }
 
+function getOriginalIssueMessage(userText: string, messages: ChatMessage[]): string {
+  const cleanText = userText.toLowerCase().trim();
+  const genericConfirmations = ['yes', 'confirm', 'ok', 'correct', 'fine', 'yes it is', 'yeah', 'yep', 'haan', 'haji', 'sahi hai', 'agree', 'proceed'];
+  
+  if (genericConfirmations.includes(cleanText) || cleanText.length <= 4) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role === 'user') {
+        const clean = msg.content.toLowerCase().trim();
+        if (!genericConfirmations.includes(clean) && clean.length > 4) {
+          return msg.content;
+        }
+      }
+    }
+  }
+  return userText;
+}
+
 // ── Parse a real Complaint from the AI's confirmation text ────────────────────
 function parseComplaintFromResponse(content: string, userMsg: string, complaintId: string): Complaint {
   const combined = userMsg + ' ' + content;
@@ -374,7 +392,8 @@ export default function ChatInterface({ onNewComplaint, onComplaintUpdate, exist
       historyRef.current.push({ role: 'model', parts: [{ text: fullContent }] });
 
       if (msgType === 'complaint_confirmation' && complaintId) {
-        const newComplaint = parseComplaintFromResponse(fullContent, text || '', complaintId);
+        const originalUserText = getOriginalIssueMessage(text || '', messages);
+        const newComplaint = parseComplaintFromResponse(fullContent, originalUserText, complaintId);
         onNewComplaint(newComplaint);
 
         // Browser push notification

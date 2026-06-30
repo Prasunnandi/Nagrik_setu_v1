@@ -264,7 +264,7 @@ export async function POST(req: NextRequest) {
 
     appendHistory(chatId, 'user', userText);
     const reply = await callGeminiWithHistory(chatId, userName, activeDomain);
-    await syncGeminiReplyToDb(reply, userText, userName, `telegram-${chatId}`);
+    await syncGeminiReplyToDb(reply, userText, userName, `telegram-${chatId}`, chatHistories.get(chatId));
     appendHistory(chatId, 'model', reply);
     await sendTelegram(chatId, reply);
     return NextResponse.json({ ok: true });
